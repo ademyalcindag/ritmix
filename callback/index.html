@@ -22,7 +22,7 @@
         const res = await fetch('https://ritmix.vercel.app/api/token', {
   method: 'POST',
   headers: {'Content-Type':'application/json'},
-  body: JSON.stringify({code, redirect_uri: 'https://ritmix.vercel.app/callback'})
+  body: JSON.stringify({code, redirect_uri:'https://ritmix.vercel.app/callback'})
 });
         const data = await res.json();
         if (data.error) { alert('Token hatası: ' + data.error); return; }
