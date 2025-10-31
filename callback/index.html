@@ -23,6 +23,12 @@
       const redirectUri = 'https://ritmix.vercel.app/callback';
 
       async function getToken() {
+         window.accessToken = localStorage.getItem('at');
+         window.refreshToken = localStorage.getItem('rt');
+         window.accessToken = data.access_token;
+         window.refreshToken = data.refresh_token;
+         localStorage.setItem('at', data.access_token);
+         localStorage.setItem('rt', data.refresh_token);
         document.getElementById('log').innerText = 'Token alınıyor...';
         const res = await fetch('https://ritmix.vercel.app/api/token', {
           method: 'POST',
@@ -69,17 +75,35 @@
         document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
       }
 
-      async function api(endpoint, method='GET', body=null) {
-        const res = await fetch(`https://api.spotify.com/${endpoint}`, {
-          method,
-          headers: {
-            'Authorization': `Bearer ${window.accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: body ? JSON.stringify(body) : undefined
-        });
-        return res.json();
-      }
+     // Akıllı postacı (401 → refresh → retry)
+async function api(endpoint, method = 'GET', body = null, retry = true) {
+  const res = await fetch(`https://api.spotify.com/${endpoint}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${window.accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+
+  // Eğer 401 ise ve yeniden denemeye izin varsa
+  if (res.status === 401 && retry && window.refreshToken) {
+    // Yeni token al
+    const refresh = await fetch('https://ritmix.vercel.app/api/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: window.refreshToken })
+    });
+    const data = await refresh.json();
+    if (data.access_token) {
+      window.accessToken = data.access_token;        // yeni token
+      localStorage.setItem('at', data.access_token); // sakla
+      // Aynı isteği bir daha dene (retry = false sonsuz döngüyü önler)
+      return api(endpoint, method, body, false);
+    }
+  }
+  return res.json();
+}
 
       getToken();
     </script>
