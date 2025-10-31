@@ -19,12 +19,11 @@
       const redirectUri = 'https://ademyalcindag.github.io/ritmix/callback';
 
       async function getToken() {
-        document.getElementById('log').innerText = 'Token alınıyor...';
         const res = await fetch('https://ritmix.vercel.app/api/token', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({code, redirect_uri: redirectUri})
-        });
+  method: 'POST',
+  headers: {'Content-Type':'application/json'},
+  body: JSON.stringify({code, redirect_uri: 'https://ritmix.vercel.app/callback'})
+});
         const data = await res.json();
         if (data.error) { alert('Token hatası: ' + data.error); return; }
         window.accessToken = data.access_token;
