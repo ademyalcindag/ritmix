@@ -15,35 +15,16 @@
     <div id="log"></div>
 
     <script>
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      if (!code) { alert('Kod yok'); window.location = '/'; }
-
-      const clientId = 'c9b9ffada77b4d05b758ca33a2fd43f6';
-      const redirectUri = 'https://ritmix.vercel.app/callback';
-
-      async function getToken() {
-         window.accessToken = localStorage.getItem('at');
-         window.refreshToken = localStorage.getItem('rt');
-         window.accessToken = data.access_token;
-         window.refreshToken = data.refresh_token;
-         localStorage.setItem('at', data.access_token);
-         localStorage.setItem('rt', data.refresh_token);
-        document.getElementById('log').innerText = 'Token alınıyor...';
-        const res = await fetch('https://ritmix.vercel.app/api/token', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({code, redirect_uri: redirectUri})
-        });
-        const data = await res.json();
-        if (data.error) { alert('Token hatası: ' + data.error); return; }
-        window.accessToken = data.access_token;
-        window.refreshToken = data.refresh_token;
-        localStorage.setItem('rt', data.refresh_token);
-        document.getElementById('log').innerText = '✔ Giriş başarılı, butonlar aktif!';
-        createButtons();
+      // 1) TOKEN'I AL
+      const hash = window.location.hash.substring(1);            // #access_token=...
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      if (!accessToken) { 
+        document.getElementById('log').innerText = 'Token yok, ana sayfaya yönlendiriliyorsunuz...';
+        setTimeout(() => window.location = '/', 1500);
       }
 
+      // 2) BUTONLARI OLUŞTUR
       function createButtons() {
         const moods = [
           {name:'Enerjik', energy:[0.7,1.0], valence:[0.5,1.0]},
@@ -59,53 +40,44 @@
           btn.onclick = () => createPlaylist(m);
           box.appendChild(btn);
         });
+        document.getElementById('log').innerText = '✔ Token alındı, butonlar aktif!';
       }
 
+      // 3) ÇALMA LİSTESİ OLUŞTUR
       async function createPlaylist(mood) {
         document.getElementById('log').innerText = 'Çalma listesi oluşturuluyor...';
+        // kullanıcı bilgisi
         const user = await api('v1/me');
+        // playlist yarat
         const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
           name: `Ritmix • ${mood.name}`,
           description: 'AI ile ruh haline göre oluşturuldu',
           public: true
         });
+        // şarkı önerisi al
         const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
         const uris = tracks.tracks.map(t => t.uri);
+        // playlist'e ekle
         await api(`v1/playlists/${playlist.id}/tracks`, 'POST', {uris});
+        // kullanıcıyı Spotify'da listeye götür
         document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
       }
 
-     // Akıllı postacı (401 → refresh → retry)
-async function api(endpoint, method = 'GET', body = null, retry = true) {
-  const res = await fetch(`https://api.spotify.com/${endpoint}`, {
-    method,
-    headers: {
-      'Authorization': `Bearer ${window.accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
+      // 4) API YARDIMCISI
+      async function api(endpoint, method = 'GET', body = null) {
+        const res = await fetch(`https://api.spotify.com/${endpoint}`, {
+          method,
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: body ? JSON.stringify(body) : undefined
+        });
+        return res.json();
+      }
 
-  // Eğer 401 ise ve yeniden denemeye izin varsa
-  if (res.status === 401 && retry && window.refreshToken) {
-    // Yeni token al
-    const refresh = await fetch('https://ritmix.vercel.app/api/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: window.refreshToken })
-    });
-    const data = await refresh.json();
-    if (data.access_token) {
-      window.accessToken = data.access_token;        // yeni token
-      localStorage.setItem('at', data.access_token); // sakla
-      // Aynı isteği bir daha dene (retry = false sonsuz döngüyü önler)
-      return api(endpoint, method, body, false);
-    }
-  }
-  return res.json();
-}
-
-      getToken();
+      // 5) BAŞLAT
+      createButtons();
     </script>
   </body>
 </html>
