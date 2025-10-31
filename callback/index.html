@@ -29,8 +29,12 @@
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     let token = params.get('access_token');
-    if (token) localStorage.setItem('at', token);
-    else token = localStorage.getItem('at');
+    if (token) {
+      localStorage.setItem('at', token);
+      localStorage.setItem('rt', params.get('refresh_token')); // varsa
+    } else {
+      token = localStorage.getItem('at');
+    }
     if (!token) { window.location = '/'; }
 
     const moods = [
@@ -64,7 +68,7 @@
       document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
     }
 
-    async function api(endpoint, method = 'GET', body = null) {
+    async function api(endpoint, method = 'GET', body = null, retry = true) {
       const res = await fetch(`https://api.spotify.com/${endpoint}`, {
         method,
         headers: {
@@ -73,6 +77,19 @@
         },
         body: body ? JSON.stringify(body) : undefined
       });
+      if (res.status === 401 && retry) {
+        const refresh = await fetch('https://ritmix.vercel.app/api/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: localStorage.getItem('rt') })
+        });
+        const data = await refresh.json();
+        if (data.access_token) {
+          token = data.access_token;
+          localStorage.setItem('at', token);
+          return api(endpoint, method, body, false);
+        }
+      }
       return res.json();
     }
   </script>
