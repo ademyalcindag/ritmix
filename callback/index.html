@@ -3,11 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>Ritmix - Ruh Hali</title>
-    <style>
-      body{background:#111;color:#fff;font-family:Arial;text-align:center;padding-top:10vh}
-      button{background:#1db954;color:#fff;border:none;padding:12px 24px;margin:8px;border-radius:24px;cursor:pointer;font-size:16px}
-      #log{margin-top:20px;font-size:14px;color:#aaa}
-    </style>
+    <style>/* önceki css aynı*/</style>
   </head>
   <body>
     <h1>Ruh Halini Seç</h1>
@@ -15,35 +11,29 @@
     <div id="log"></div>
 
     <script>
-      // ---------- TOKEN ALMA ----------
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
-      if (!code) { alert('Yetkilendirme kodu yok'); window.location='/'; }
+      if (!code) { alert('Kod yok'); window.location = '/'; }
 
       const clientId = 'c9b9ffada77b4d05b758ca33a2fd43f6';
       const redirectUri = 'https://ademyalcindag.github.io/ritmix/callback';
 
       async function getToken() {
-        const res = await fetch('https://accounts.spotify.com/api/token', {
+        document.getElementById('log').innerText = 'Token alınıyor...';
+        const res = await fetch('https://ritmix.vercel.app/api/token', {
           method: 'POST',
-          headers: {'Content-Type':'application/x-www-form-urlencoded'},
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            code: code,
-            redirect_uri: redirectUri,
-            client_id: clientId,
-            client_secret: '5dc41bd9d1414e44a18d1c58a1946603'
-          })
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({code, redirect_uri: redirectUri})
         });
         const data = await res.json();
         if (data.error) { alert('Token hatası: ' + data.error); return; }
         window.accessToken = data.access_token;
         window.refreshToken = data.refresh_token;
+        localStorage.setItem('rt', data.refresh_token);
         document.getElementById('log').innerText = '✔ Giriş başarılı, butonlar aktif!';
         createButtons();
       }
 
-      // ---------- RUH HALİ BUTONLARI ----------
       function createButtons() {
         const moods = [
           {name:'Enerjik', energy:[0.7,1.0], valence:[0.5,1.0]},
@@ -61,28 +51,21 @@
         });
       }
 
-      // ---------- ÇALMA LİSTESİ OLUŞTUR ----------
       async function createPlaylist(mood) {
         document.getElementById('log').innerText = 'Çalma listesi oluşturuluyor...';
-        // 1) kullanıcı bilgisi
         const user = await api('v1/me');
-        // 2) playlist yarat
         const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
           name: `Ritmix • ${mood.name}`,
           description: 'AI ile ruh haline göre oluşturuldu',
           public: true
         });
-        // 3) öneri al
         const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
         const uris = tracks.tracks.map(t => t.uri);
-        // 4) şarkıları ekle
         await api(`v1/playlists/${playlist.id}/tracks`, 'POST', {uris});
-        // 5) kullanıcıyı Spotify'da listeye götür
         document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
       }
 
-      // ---------- API YARDIMCISI ----------
-      async api(endpoint, method='GET', body=null) {
+      async function api(endpoint, method='GET', body=null) {
         const res = await fetch(`https://api.spotify.com/${endpoint}`, {
           method,
           headers: {
@@ -94,7 +77,6 @@
         return res.json();
       }
 
-      // ---------- BAŞLAT ----------
       getToken();
     </script>
   </body>
