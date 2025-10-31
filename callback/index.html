@@ -1,88 +1,75 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Ritmix - Ruh Hali</title>
-    <style>
-      body{background:#111;color:#fff;font-family:Arial;text-align:center;padding-top:10vh}
-      button{background:#1db954;color:#fff;border:none;padding:12px 24px;margin:8px;border-radius:24px;cursor:pointer;font-size:16px}
-      #log{margin-top:20px;font-size:14px;color:#aaa}
-    </style>
-  </head>
-  <body>
-    <h1>Ruh Halini Seç</h1>
-    <div id="buttons"></div>
-    <div id="log"></div>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Ritmix – Ruh Hali</title>
+  <style>
+    body{background:#111;color:#fff;font-family:Arial;text-align:center;padding-top:10vh}
+    button{background:#1db954;color:#fff;border:none;padding:12px 24px;margin:8px;border-radius:24px;cursor:pointer;font-size:16px}
+    #log{margin-top:20px;font-size:14px;color:#aaa}
+  </style>
+</head>
+<body>
+  <h1>Ruh Halini Seç</h1>
+  <div id="buttons"></div>
+  <div id="log"></div>
 
-    <script>
-      // 1) TOKEN'I URL HASH'INDEN AL & SAKLA
-      function getToken() {
-        const hash = window.location.hash.substring(1);            // #access_token=...
-        const params = new URLSearchParams(hash);
-        const urlToken = params.get('access_token');
-        if (urlToken) {
-          localStorage.setItem('at', urlToken);   // kalıcı sakla
-          return urlToken;
-        }
-        return localStorage.getItem('at');        // yoksa öncekini ver
-      }
+  <script>
+    // ---------- 1) TOKEN AL / SAKLA ----------
+    function getToken() {
+      const hash = window.location.hash.substring(1);          // #access_token=...
+      const params = new URLSearchParams(hash);
+      const urlToken = params.get('access_token');
+      if (urlToken) { localStorage.setItem('at', urlToken); return urlToken; }
+      return localStorage.getItem('at');                       // yoksa önceki
+    }
+    const accessToken = getToken();
+    if (!accessToken) { window.location = '/'; return; }     // yoksa ana sayfa
 
-      const accessToken = getToken();
-      if (!accessToken) {
-        document.getElementById('log').innerText = 'Tekrar giriş yapılıyor...';
-        setTimeout(() => window.location = '/', 5500);
-        return;
-      }
+    // ---------- 2) BUTONLAR ----------
+    const moods = [
+      {name:'Enerjik', energy:[0.7,1.0], valence:[0.5,1.0]},
+      {name:'Sakin',   energy:[0.0,0.4], valence:[0.4,0.8]},
+      {name:'Üzgün',   energy:[0.0,0.5], valence:[0.0,0.4]},
+      {name:'Odaklı', energy:[0.3,0.7], valence:[0.2,0.6]},
+      {name:'Neşeli',  energy:[0.5,1.0], valence:[0.7,1.0]}
+    ];
+    const box = document.getElementById('buttons');
+    moods.forEach(m => {
+      const btn = document.createElement('button');
+      btn.textContent = m.name;
+      btn.onclick = () => createPlaylist(m);
+      box.appendChild(btn);
+    });
+    document.getElementById('log').innerText = '✔ Giriş başarılı, butonlar aktif!';
 
-      // 2) BUTONLARI OLUŞTUR
-      function createButtons() {
-        const moods = [
-          {name:'Enerjik', energy:[0.7,1.0], valence:[0.5,1.0]},
-          {name:'Sakin',   energy:[0.0,0.4], valence:[0.4,0.8]},
-          {name:'Üzgün',   energy:[0.0,0.5], valence:[0.0,0.4]},
-          {name:'Odaklı', energy:[0.3,0.7], valence:[0.2,0.6]},
-          {name:'Neşeli',  energy:[0.5,1.0], valence:[0.7,1.0]}
-        ];
-        const box = document.getElementById('buttons');
-        moods.forEach(m => {
-          const btn = document.createElement('button');
-          btn.textContent = m.name;
-          btn.onclick = () => createPlaylist(m);
-          box.appendChild(btn);
-        });
-        document.getElementById('log').innerText = '✔ Giriş başarılı!';
-      }
+    // ---------- 3) ÇALMA LİSTESİ ----------
+    async function createPlaylist(mood) {
+      document.getElementById('log').innerText = 'Çalma listesi oluşturuluyor...';
+      const user = await api('v1/me');
+      const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
+        name: `Ritmix • ${mood.name}`,
+        description: 'AI ile ruh haline göre oluşturuldu',
+        public: true
+      });
+      const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
+      const uris = tracks.tracks.map(t => t.uri);
+      await api(`v1/playlists/${playlist.id}/tracks`, 'POST', {uris});
+      document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
+    }
 
-      // 3) ÇALMA LİSTESİ OLUŞTUR
-      async function createPlaylist(mood) {
-        document.getElementById('log').innerText = 'Çalma listesi oluşturuluyor...';
-        const user = await api('v1/me');
-        const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
-          name: `Ritmix • ${mood.name}`,
-          description: 'AI ile ruh haline göre oluşturuldu',
-          public: true
-        });
-        const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
-        const uris = tracks.tracks.map(t => t.uri);
-        await api(`v1/playlists/${playlist.id}/tracks`, 'POST', {uris});
-        document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
-      }
-
-      // 4) API YARDIMCISI
-      async function api(endpoint, method = 'GET', body = null) {
-        const res = await fetch(`https://api.spotify.com/${endpoint}`, {
-          method,
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: body ? JSON.stringify(body) : undefined
-        });
-        return res.json();
-      }
-
-      // 5) BAŞLAT
-      createButtons();
-    </script>
-  </body>
+    // ---------- 4) API YARDIMCISI ----------
+    async function api(endpoint, method = 'GET', body = null) {
+      const res = await fetch(`https://api.spotify.com/${endpoint}`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      return res.json();
+    }
+  </script>
+</body>
 </html>
