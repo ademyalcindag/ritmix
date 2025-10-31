@@ -1,4 +1,4 @@
-// api/token.js
+// api/token.js  (Vercel Serverless)
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const params = new URLSearchParams({
     grant_type: 'authorization_code',
     code,
-    redirect_uri: "https://ritmix.vercel.app/callback"
+    redirect_uri
   });
 
   const r = await fetch('https://accounts.spotify.com/api/token', {
