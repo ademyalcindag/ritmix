@@ -15,18 +15,16 @@
   <div id="log"></div>
 
   <script>
-    // ---------- 1) TOKEN AL / SAKLA ----------
-    function getToken() {
-      const hash = window.location.hash.substring(1);          // #access_token=...
-      const params = new URLSearchParams(hash);
-      const urlToken = params.get('access_token');
-      if (urlToken) { localStorage.setItem('at', urlToken); return urlToken; }
-      return localStorage.getItem('at');                       // yoksa önceki
-    }
-    const accessToken = getToken();
-    if (!accessToken) { window.location = '/'; return; }     // yoksa ana sayfa
+    // 1) TOKEN'I URL'DEN AL & SAKLA
+    const hash = window.location.hash.substring(1);        // #access_token=...
+    const params = new URLSearchParams(hash);
+    let token = params.get('access_token');
+    if (token) localStorage.setItem('at', token);          // kalıcı
+    else token = localStorage.getItem('at');               // yoksa önceki
 
-    // ---------- 2) BUTONLAR ----------
+    if (!token) { window.location = '/'; }                 // yoksa ana sayfa
+
+    // 2) BUTONLAR
     const moods = [
       {name:'Enerjik', energy:[0.7,1.0], valence:[0.5,1.0]},
       {name:'Sakin',   energy:[0.0,0.4], valence:[0.4,0.8]},
@@ -43,7 +41,7 @@
     });
     document.getElementById('log').innerText = '✔ Giriş başarılı, butonlar aktif!';
 
-    // ---------- 3) ÇALMA LİSTESİ ----------
+    // 3) ÇALMA LİSTESİ
     async function createPlaylist(mood) {
       document.getElementById('log').innerText = 'Çalma listesi oluşturuluyor...';
       const user = await api('v1/me');
@@ -58,12 +56,12 @@
       document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
     }
 
-    // ---------- 4) API YARDIMCISI ----------
+    // 4) API YARDIMCISI
     async function api(endpoint, method = 'GET', body = null) {
       const res = await fetch(`https://api.spotify.com/${endpoint}`, {
         method,
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: body ? JSON.stringify(body) : undefined
