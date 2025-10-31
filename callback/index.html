@@ -15,13 +15,23 @@
     <div id="log"></div>
 
     <script>
-      // 1) TOKEN'I AL
-      const hash = window.location.hash.substring(1);            // #access_token=...
-      const params = new URLSearchParams(hash);
-      const accessToken = params.get('access_token');
-      if (!accessToken) { 
-        document.getElementById('log').innerText = 'Token yok, ana sayfaya yönlendiriliyorsunuz...';
+      // 1) TOKEN'I URL HASH'INDEN AL & SAKLA
+      function getToken() {
+        const hash = window.location.hash.substring(1);            // #access_token=...
+        const params = new URLSearchParams(hash);
+        const urlToken = params.get('access_token');
+        if (urlToken) {
+          localStorage.setItem('at', urlToken);   // kalıcı sakla
+          return urlToken;
+        }
+        return localStorage.getItem('at');        // yoksa öncekini ver
+      }
+
+      const accessToken = getToken();
+      if (!accessToken) {
+        document.getElementById('log').innerText = 'Tekrar giriş yapılıyor...';
         setTimeout(() => window.location = '/', 1500);
+        return;
       }
 
       // 2) BUTONLARI OLUŞTUR
@@ -40,26 +50,21 @@
           btn.onclick = () => createPlaylist(m);
           box.appendChild(btn);
         });
-        document.getElementById('log').innerText = '✔ Token alındı, butonlar aktif!';
+        document.getElementById('log').innerText = '✔ Giriş başarılı!';
       }
 
       // 3) ÇALMA LİSTESİ OLUŞTUR
       async function createPlaylist(mood) {
         document.getElementById('log').innerText = 'Çalma listesi oluşturuluyor...';
-        // kullanıcı bilgisi
         const user = await api('v1/me');
-        // playlist yarat
         const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
           name: `Ritmix • ${mood.name}`,
           description: 'AI ile ruh haline göre oluşturuldu',
           public: true
         });
-        // şarkı önerisi al
         const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
         const uris = tracks.tracks.map(t => t.uri);
-        // playlist'e ekle
         await api(`v1/playlists/${playlist.id}/tracks`, 'POST', {uris});
-        // kullanıcıyı Spotify'da listeye götür
         document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
       }
 
