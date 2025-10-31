@@ -3,47 +3,56 @@
 <head>
   <meta charset="utf-8">
   <title>Ritmix – Ruh Hali</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body{background:#111;color:#fff;font-family:Arial;text-align:center;padding-top:10vh}
-    button{background:#1db954;color:#fff;border:none;padding:12px 24px;margin:8px;border-radius:24px;cursor:pointer;font-size:16px}
-    #log{margin-top:20px;font-size:14px;color:#aaa}
+    :root{--spotify:#1db954}
+    *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
+    body{background:#121212;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}
+    h1{font-size:2rem;margin-bottom:12px}
+    p{margin-bottom:24px;color:#b3b3b3}
+    .mood-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;width:100%;max-width:480px}
+    .mood-card{background:#181818;border-radius:12px;padding:20px;cursor:pointer;transition:.2s}
+    .mood-card:hover{background:#282828;transform:scale(1.03)}
+    .mood-card h3{font-size:1.1rem;margin-bottom:4px}
+    .mood-card span{font-size:.8rem;color:#b3b3b3}
+    #log{margin-top:24px;font-size:.9rem;color:var(--spotify)}
+    a{color:var(--spotify);text-decoration:none;font-weight:600}
   </style>
 </head>
 <body>
-  <h1>Ruh Halini Seç</h1>
-  <div id="buttons"></div>
+  <h1>Ritmix</h1>
+  <p>Ruh haline göre müzik listesi oluştur</p>
+
+  <div class="mood-grid" id="grid"></div>
   <div id="log"></div>
 
   <script>
-    // 1) TOKEN'I URL'DEN AL & SAKLA
-    const hash = window.location.hash.substring(1);        // #access_token=...
+    const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     let token = params.get('access_token');
-    if (token) localStorage.setItem('at', token);          // kalıcı
-    else token = localStorage.getItem('at');               // yoksa önceki
+    if (token) localStorage.setItem('at', token);
+    else token = localStorage.getItem('at');
+    if (!token) { window.location = '/'; }
 
-    if (!token) { window.location = '/'; }                 // yoksa ana sayfa
-
-    // 2) BUTONLAR
     const moods = [
-      {name:'Enerjik', energy:[0.7,1.0], valence:[0.5,1.0]},
-      {name:'Sakin',   energy:[0.0,0.4], valence:[0.4,0.8]},
-      {name:'Üzgün',   energy:[0.0,0.5], valence:[0.0,0.4]},
-      {name:'Odaklı', energy:[0.3,0.7], valence:[0.2,0.6]},
-      {name:'Neşeli',  energy:[0.5,1.0], valence:[0.7,1.0]}
+      {name:'Enerjik', desc:'Hareketli, coşkulu', energy:[0.7,1.0], valence:[0.5,1.0]},
+      {name:'Sakin',   desc:'Rahat, huzurlu',   energy:[0.0,0.4], valence:[0.4,0.8]},
+      {name:'Üzgün',   desc:'Melankolik, derin',energy:[0.0,0.5], valence:[0.0,0.4]},
+      {name:'Odaklı', desc:'Dikkat, derinlik', energy:[0.3,0.7], valence:[0.2,0.6]},
+      {name:'Neşeli',  desc:'Mutlu, pozitif',   energy:[0.5,1.0], valence:[0.7,1.0]}
     ];
-    const box = document.getElementById('buttons');
+    const grid = document.getElementById('grid');
     moods.forEach(m => {
-      const btn = document.createElement('button');
-      btn.textContent = m.name;
-      btn.onclick = () => createPlaylist(m);
-      box.appendChild(btn);
+      const card = document.createElement('div');
+      card.className = 'mood-card';
+      card.innerHTML = `<h3>${m.name}</h3><span>${m.desc}</span>`;
+      card.onclick = () => createPlaylist(m);
+      grid.appendChild(card);
     });
-    document.getElementById('log').innerText = '✔ Giriş başarılı, butonlar aktif!';
+    document.getElementById('log').innerText = '✔ Giriş başarılı, seçim yapın.';
 
-    // 3) ÇALMA LİSTESİ
     async function createPlaylist(mood) {
-      document.getElementById('log').innerText = 'Çalma listesi oluşturuluyor...';
+      document.getElementById('log').innerText = 'Liste oluşturuluyor...';
       const user = await api('v1/me');
       const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
         name: `Ritmix • ${mood.name}`,
@@ -53,10 +62,9 @@
       const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
       const uris = tracks.tracks.map(t => t.uri);
       await api(`v1/playlists/${playlist.id}/tracks`, 'POST', {uris});
-      document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank" style="color:#1db954">Spotify'da aç</a>`;
+      document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
     }
 
-    // 4) API YARDIMCISI
     async function api(endpoint, method = 'GET', body = null) {
       const res = await fetch(`https://api.spotify.com/${endpoint}`, {
         method,
