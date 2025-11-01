@@ -5,18 +5,18 @@
   <title>Ritmix – Ruh Hali</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    :root{--spotify:#1db954}
-    *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
-    body{background:#121212;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}
-    h1{font-size:2rem;margin-bottom:12px}
-    p{margin-bottom:24px;color:#b3b3b3}
-    .mood-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;width:100%;max-width:480px}
-    .mood-card{background:#181818;border-radius:12px;padding:20px;cursor:pointer;transition:.2s}
-    .mood-card:hover{background:#282828;transform:scale(1.03)}
-    .mood-card h3{font-size:1.1rem;margin-bottom:4px}
-    .mood-card span{font-size:.8rem;color:#b3b3b3}
-    #log{margin-top:24px;font-size:.9rem;color:var(--spotify)}
-    a{color:var(--spotify);text-decoration:none;font-weight:600}
+    :root { --spotify: #1db954; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+    body { background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; text-align: center; }
+    h1 { font-size: 2rem; margin-bottom: 12px; }
+    p { margin-bottom: 24px; color: #b3b3b3; }
+    .mood-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; width: 100%; max-width: 480px; }
+    .mood-card { background: #181818; border-radius: 12px; padding: 20px; cursor: pointer; transition: .2s; }
+    .mood-card:hover { background: #282828; transform: scale(1.03); }
+    .mood-card h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .mood-card span { font-size: .8rem; color: #b3b3b3; }
+    #log { margin-top: 24px; font-size: .9rem; color: var(--spotify); }
+    a { color: var(--spotify); text-decoration: none; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -27,7 +27,7 @@
   <div id="log"></div>
 
   <script>
-    // KALICI ÇÖZÜM – PKCE FLOW (SUNUCUSUZ, REFRESHSİZ, SONSUZ)
+    // KALICI ÇÖZÜM – PKCE FLOW (SUNUCUSUZ)
     const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
     const REDIRECT_URI = 'https://ritmix.vercel.app/callback';
 
@@ -36,9 +36,9 @@
     if (!token) { startAuth(); }
 
     // PKCE FLOW BAŞLAT
-    function startAuth() {
+    async function startAuth() {
       const codeVerifier = generateCodeVerifier();
-      const codeChallenge = generateCodeChallenge(codeVerifier);
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
       localStorage.setItem('cv', codeVerifier);
 
       const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
@@ -46,13 +46,12 @@
     }
 
     // CALLBACK’DEN TOKEN AL
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
+    const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code) {
       exchangeCode(code).then(() => {
         localStorage.removeItem('cv');
-        window.location = REDIRECT_URI; // temiz URL
+        setTimeout(() => { window.location = REDIRECT_URI; }, 500);
       });
     }
 
@@ -73,7 +72,9 @@
       const data = await res.json();
       if (data.access_token) {
         localStorage.setItem('at', data.access_token);
-        localStorage.setItem('rt', data.refresh_token);
+        localStorage.setItem('rt', data.refresh_token || '');
+      } else {
+        console.error('Token alınamadı:', data);
       }
     }
 
@@ -90,12 +91,13 @@
 
     // RUH HALİ KARTLARI
     const moods = [
-      {name:'Enerjik', desc:'Hareketli, coşkulu', energy:[0.7,1], valence:[0.5,1]},
-      {name:'Sakin',   desc:'Rahat, huzurlu',   energy:[0,0.4], valence:[0.4,0.8]},
-      {name:'Üzgün',   desc:'Melankolik, derin',energy:[0,0.5], valence:[0,0.4]},
-      {name:'Odaklı', desc:'Dikkat, derinlik', energy:[0.3,0.7], valence:[0.2,0.6]},
-      {name:'Neşeli',  desc:'Mutlu, pozitif',   energy:[0.5,1], valence:[0.7,1]}
+      { name: 'Enerjik', desc: 'Hareketli, coşkulu', energy: [0.7, 1], valence: [0.5, 1] },
+      { name: 'Sakin', desc: 'Rahat, huzurlu', energy: [0, 0.4], valence: [0.4, 0.8] },
+      { name: 'Üzgün', desc: 'Melankolik, derin', energy: [0, 0.5], valence: [0, 0.4] },
+      { name: 'Odaklı', desc: 'Dikkat, derinlik', energy: [0.3, 0.7], valence: [0.2, 0.6] },
+      { name: 'Neşeli', desc: 'Mutlu, pozitif', energy: [0.5, 1], valence: [0.7, 1] }
     ];
+
     const grid = document.getElementById('grid');
     moods.forEach(m => {
       const card = document.createElement('div');
@@ -116,7 +118,7 @@
       });
       const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
       const uris = tracks.tracks.map(t => t.uri);
-      await api(`v1/playlists/${playlist.id}/tracks`, 'POST', {uris});
+      await api(`v1/playlists/${playlist.id}/tracks`, 'POST', { uris });
       document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
     }
 
@@ -129,6 +131,9 @@
         },
         body: body ? JSON.stringify(body) : undefined
       });
+      if (!res.ok) {
+        console.error(`API hatası [${res.status}]:`, await res.text());
+      }
       return res.json();
     }
   </script>
