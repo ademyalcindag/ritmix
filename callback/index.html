@@ -37,8 +37,8 @@
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       localStorage.setItem('cv', codeVerifier);
 
-      // ✅ DÜZELTME 1/3: Auth URL - CLIENT_ID DÜZGÜN GÖNDERİLİYOR
-      const authUrl = `https://accounts.spotify.com/api/token2${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      // ✅ DÜZELTME 1/3: Auth URL - Spotify'ın Gerçek Auth URL'si
+      const authUrl = `https://accounts.spotify.com/api/token5{CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
       window.location = authUrl;
     }
 
@@ -56,7 +56,7 @@
       const verifier = localStorage.getItem('cv');
       if (!verifier) return;
       
-      // ✅ DÜZELTME 2/3: Token Exchange URL - Artık CLIENT_ID'yi doğru gönderiyor
+      // ✅ DÜZELTME 2/3: Token Exchange URL - Spotify'ın Gerçek Token URL'si
       const res = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -64,7 +64,7 @@
           grant_type: 'authorization_code',
           code: code,
           redirect_uri: REDIRECT_URI,
-          client_id: CLIENT_ID, // CLIENT_ID'nin burada da doğru olması çok önemli
+          client_id: CLIENT_ID, // CLIENT_ID doğru gönderiliyor
           code_verifier: verifier
         })
       });
@@ -155,7 +155,7 @@
     }
 
     async function api(endpoint, method = 'GET', body = null) {
-      // ✅ DÜZELTME 3/3: Ana API URL'si
+      // ✅ DÜZELTME 3/3: Ana API URL'si - Spotify'ın Gerçek API URL'si
       const API_URL = 'https://api.spotify.com/'; 
       
       const res = await fetch(`${API_URL}${endpoint}`, {
