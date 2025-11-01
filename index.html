@@ -1,18 +1,34 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
+<head>
+    <meta charset="UTF-8" />
     <title>Ritmix</title>
     <style>
-      body {font-family: Arial; background: #111; color: #fff; text-align: center; padding-top: 40vh}
-      a {background: #1db954; color: #fff; padding: 12px 24px; border-radius: 24px; text-decoration: none; display: inline-block}
+        body {
+            font-family: Arial;
+            background: #111;
+            color: #fff;
+            text-align: center;
+            padding-top: 40px;
+        }
+        .login-btn {
+            background: #1db954;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 24px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <h1>Ritmix</h1>
-    <p>Ruh haline göre müzik listesi</p>
-    <a href="https://accounts.spotify.com/authorize?client_id=c9b9ffada77b4d05b758ca33a2fd43f6&response_type=code&redirect_uri=https%3A%2F%2Fritmix.vercel.app%2Fcallback&scope=playlist-modify-public%20playlist-modify-private%20user-top-read">
-  Spotify ile Giriş
-</a>
-  </body>
+    <p>Ruh haline göre müzik listesi oluştur</p>
+    
+    <a class="login-btn" 
+       href="https://accounts.spotify.com/authorize?client_id=$c9b9ffada77b4d05b758ca33a2fd43f6&response_type=code&redirect_uri=https%3A%2F%2Fritmix.vercel.app%2Fcallback&scope=playlist-modify-public%20playlist-modify-private%20user-top-read"
+       >Spotify ile Giriş</a>
+
+</body>
 </html>
