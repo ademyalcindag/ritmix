@@ -141,37 +141,4 @@
       // Liste başarılı, Oynatıcıyı sayfaya gömüyoruz
       document.getElementById('grid').innerHTML = `
           <iframe 
-              style="border-radius:12px" 
-              src="https://accounts.spotify.com/api/token3${playlistId}" 
-              width="100%" 
-              height="352" 
-              frameborder="0" 
-              allowfullscreen="" 
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-              loading="lazy">
-          </iframe>
-      `;
-      document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br>Sayfadan ayrılmadan dinleyebilirsiniz.`;
-    }
-
-    async function api(endpoint, method = 'GET', body = null) {
-      // ✅ DÜZELTME 3/3: Ana API URL'si - Spotify'ın Gerçek API URL'si
-      const API_URL = 'https://api.spotify.com/'; 
-      
-      const res = await fetch(`${API_URL}${endpoint}`, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('at')}`,
-          'Content-Type': 'application/json'
-        },
-        body: body ? JSON.stringify(body) : undefined
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`API hatası [${res.status}]:`, errorText);
-        return {}; 
-      }
-      return res.json();
-    }
-  </script></body></html>
+              style="border-radius:12px
