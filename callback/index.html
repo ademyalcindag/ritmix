@@ -37,6 +37,7 @@
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       localStorage.setItem('cv', codeVerifier);
 
+      // Auth URL'si düzeltildi (HTTPS kullanıldı)
       const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
       window.location = authUrl;
     }
@@ -54,7 +55,7 @@
     async function exchangeCode(code) {
       const verifier = localStorage.getItem('cv');
       if (!verifier) return;
-      // https://accounts.spotify.com/api/token doğru adres olmalıdır
+      // Token Exchange URL'si düzeltildi (HTTPS kullanıldı)
       const res = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -109,57 +110,10 @@
       document.getElementById('log').innerText = 'Liste oluşturuluyor...';
       const user = await api('v1/me');
       
-      // Eğer user nesnesi boşsa (API hatası aldıysa), işlemi durdur.
+      // Hata kontrolü
       if (!user.id) {
-          document.getElementById('log').innerText = '❌ Kullanıcı bilgisi alınamadı, lütfen sayfayı yenileyin.';
+          document.getElementById('log').innerText = '❌ Kullanıcı bilgisi alınamadı, yetkilendirme sorun olabilir.';
           return;
       }
       
-      const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
-        name: `Ritmix • ${mood.name}`,
-        description: 'AI ile ruh haline göre oluşturuldu',
-        public: true
-      });
-      
-      // Eğer playlist nesnesi boşsa (API hatası aldıysa), işlemi durdur.
-      if (!playlist.id) {
-          document.getElementById('log').innerText = '❌ Liste oluşturulamadı, lütfen tekrar deneyin.';
-          return;
-      }
-      
-      const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
-      
-      // Eğer tracks nesnesi boşsa (API hatası aldıysa), işlemi durdur.
-       if (!tracks.tracks) {
-          document.getElementById('log').innerText = '❌ Şarkı önerisi alınamadı.';
-          return;
-      }
-      
-      const uris = tracks.tracks.map(t => t.uri);
-      await api(`v1/playlists/${playlist.id}/tracks`, 'POST', { uris });
-      document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
-    }
-
-    async function api(endpoint, method = 'GET', body = null) {
-      const BASE_URL = 'https://api.spotify.com/'; // Spotify API ana URL'si
-      
-      const res = await fetch(`${BASE_URL}${endpoint}`, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('at')}`,
-          'Content-Type': 'application/json'
-        },
-        body: body ? JSON.stringify(body) : undefined
-      });
-      
-      if (!res.ok) {
-        // Hata durumunda body'yi okuyup konsola yazdır
-        const errorText = await res.text();
-        console.error(`API hatası [${res.status}]:`, errorText);
-        
-        // Hata durumunda boş bir nesne döndürerek 'json stream already read' hatasını engelle
-        return {}; 
-      }
-      return res.json();
-    }
-  </script></body></html>
+      const playlist = await api(`v1/users/${user.id}/playlists
