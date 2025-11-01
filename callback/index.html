@@ -27,7 +27,7 @@
   <div id="log"></div>
 
   <script>
-    // 1) KALICI ÇÖZÜM – PKCE FLOW (SUNUCUSUZ, REFRESHSİZ, SONSUZ)
+    // KALICI ÇÖZÜM – PKCE FLOW (SUNUCUSUZ, REFRESHSİZ, SONSUZ)
     const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
     const REDIRECT_URI = 'https://ritmix.vercel.app/callback';
 
@@ -35,7 +35,7 @@
     let token = localStorage.getItem('at');
     if (!token) { startAuth(); }
 
-    // 2) AUTH FLOW BAŞLAT (PKCE – SUNUCUSUZ)
+    // PKCE FLOW BAŞLAT
     function startAuth() {
       const codeVerifier = generateCodeVerifier();
       const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -45,7 +45,7 @@
       window.location = authUrl;
     }
 
-    // 3) CALLBACK’DEN TOKEN AL
+    // CALLBACK’DEN TOKEN AL
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     const code = params.get('code');
@@ -88,7 +88,7 @@
       return btoa(String.fromCharCode.apply(null, new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     }
 
-    // 4) RUH HALİ KARTLARI
+    // RUH HALİ KARTLARI
     const moods = [
       {name:'Enerjik', desc:'Hareketli, coşkulu', energy:[0.7,1], valence:[0.5,1]},
       {name:'Sakin',   desc:'Rahat, huzurlu',   energy:[0,0.4], valence:[0.4,0.8]},
@@ -106,7 +106,6 @@
     });
     document.getElementById('log').innerText = '✔ Giriş başarılı, seçim yapın.';
 
-    // 5) ÇALMA LİSTESİ OLUŞTUR
     async function createPlaylist(mood) {
       document.getElementById('log').innerText = 'Liste oluşturuluyor...';
       const user = await api('v1/me');
