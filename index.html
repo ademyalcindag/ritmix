@@ -5,7 +5,7 @@
     <title>Ritmix – Ruh Hali (PKCE)</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <style>
-        /* CSS aynı kalabilir */
+        /* CSS AYNI KALDI */
         :root { --spotify: #1db954; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
         body { background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; text-align: center; }
@@ -36,10 +36,9 @@
         <div id="player-container"></div>
     </div>
     <script>
-        // --- PKCE AKIŞI: İKİNCİ DOSYAYI KULLANIR ---
-
-        const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
-        const REDIRECT_URI = 'https://ritmix.vercel.app/api/callback'; // YENİ ADRES: /api/callback
+        // YENİ CLIENT ID GİRİLDİ
+        const CLIENT_ID = '3bec70ea52014ce39869fa247b0efd53';
+        const REDIRECT_URI = 'https://ritmix.vercel.app/api/callback'; // API/CALLBACK ADRESİ KESİNLEŞTİ
         const API_URL = 'https://api.spotify.com/';
 
         function generateRandomString(length) {
@@ -54,7 +53,7 @@
         async function generateCodeChallenge(codeVerifier) {
             const data = new TextEncoder().encode(codeVerifier);
             const digest = await window.crypto.subtle.digest('SHA-256', data);
-            return btoa(String.fromCharCode(...new Uint8Array(digest)))
+            return btoa(String.fromCharCode(...new Uint8صابgint8Array(digest)))
                 .replace(/\+/g, '-')
                 .replace(/\//g, '_')
                 .replace(/=+$/, '');
@@ -64,13 +63,15 @@
             const codeVerifier = generateRandomString(128);
             const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-            localStorage.setItem('cv', codeVerifier); // Code Verifier'ı kaydet
+            // Cookies kullanarak Code Verifier'ı sakla (callback.js için)
+            document.cookie = `spotify_code_verifier=${codeVerifier}; max-age=3600; path=/`;
             
             const state = generateRandomString(16);
-            localStorage.setItem('state', state); // State'i kaydet (Güvenlik için)
+            document.cookie = `spotify_auth_state=${state}; max-age=3600; path=/`; 
 
             const scope = 'playlist-modify-public playlist-modify-private user-read-private';
-            const authUrl = `https://api.spotify.com/v1/recommendations?limit=20&seed_genres=pop&min_energy=0&max_energy=0.4&min_valence=0.4&max_valence=0.80`;
+            // Doğrudan Spotify'a yönlendirme
+            const authUrl = `https://api.spotify.com/9`;
             window.location.href = authUrl;
         };
 
@@ -79,7 +80,7 @@
             showApp();
         }
 
-        // --- Uygulama Mantığı (Aynı Kalır) ---
+        // --- Uygulama Mantığı (Aynı Kaldı) ---
         function showApp() {
             document.getElementById('auth-container').style.display = 'none';
             document.getElementById('app-container').style.display = 'block';
@@ -109,7 +110,7 @@
             if (!user.id) {
                 document.getElementById('log').innerText = '❌ Token süresi doldu, lütfen tekrar giriş yapın.';
                 localStorage.removeItem('at');
-                setTimeout(() => window.location.href = 'https://ritmix.vercel.app/', 2000); // Ana sayfaya yönlendir
+                setTimeout(() => window.location.href = 'https://ritmix.vercel.app/', 2000); 
                 return;
             }
             
