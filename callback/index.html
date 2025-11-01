@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>Ritmix – Ruh Hali</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root{--spotify:#1db954}
     *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
@@ -26,17 +27,69 @@
   <div id="log"></div>
 
   <script>
+    // 1) PKCE FLOW – SUNUCUSUZ, REFRESHSİZ, SONSUZ
+    const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
+    const REDIRECT_URI = 'https://ritmix.vercel.app/callback';
+
+    // Token var mı? Yoksa auth flow başlat
+    let token = localStorage.getItem('at');
+    if (!token) { startAuth(); }
+
+    // 2) AUTH FLOW BAŞLAT (PKCE)
+    function startAuth() {
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = generateCodeChallenge(codeVerifier);
+      localStorage.setItem('cv', codeVerifier);
+
+      const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      window.location = authUrl;
+    }
+
+    // 3) CALLBACK’DEN TOKEN AL
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
-    let token = params.get('access_token');
-    if (token) {
-      localStorage.setItem('at', token);
-      localStorage.setItem('rt', params.get('refresh_token')); // varsa
-    } else {
-      token = localStorage.getItem('at');
+    const code = params.get('code');
+    if (code) {
+      exchangeCode(code).then(() => {
+        localStorage.removeItem('cv');
+        window.location = REDIRECT_URI; // temiz URL
+      });
     }
-    if (!token) { window.location = '/'; }
 
+    async function exchangeCode(code) {
+      const verifier = localStorage.getItem('cv');
+      if (!verifier) return;
+      const res = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: REDIRECT_URI,
+          client_id: CLIENT_ID,
+          code_verifier: verifier
+        })
+      });
+      const data = await res.json();
+      if (data.access_token) {
+        localStorage.setItem('at', data.access_token);
+        localStorage.setItem('rt', data.refresh_token);
+      }
+    }
+
+    function generateCodeVerifier() {
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      return btoa(String.fromCharCode.apply(null, array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    function generateCodeChallenge(verifier) {
+      return crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)).then(buf => {
+        return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      });
+    }
+
+    // 4) RUH HALİ KARTLARI
     const moods = [
       {name:'Enerjik', desc:'Hareketli, coşkulu', energy:[0.7,1], valence:[0.5,1]},
       {name:'Sakin',   desc:'Rahat, huzurlu',   energy:[0,0.4], valence:[0.4,0.8]},
@@ -54,6 +107,7 @@
     });
     document.getElementById('log').innerText = '✔ Giriş başarılı, seçim yapın.';
 
+    // 5) ÇALMA LİSTESİ OLUŞTUR
     async function createPlaylist(mood) {
       document.getElementById('log').innerText = 'Liste oluşturuluyor...';
       const user = await api('v1/me');
@@ -68,28 +122,15 @@
       document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
     }
 
-    async function api(endpoint, method = 'GET', body = null, retry = true) {
+    async function api(endpoint, method = 'GET', body = null) {
       const res = await fetch(`https://api.spotify.com/${endpoint}`, {
         method,
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${localStorage.getItem('at')}`,
           'Content-Type': 'application/json'
         },
         body: body ? JSON.stringify(body) : undefined
       });
-      if (res.status === 401 && retry) {
-        const refresh = await fetch('https://ritmix.vercel.app/api/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: localStorage.getItem('rt') })
-        });
-        const data = await refresh.json();
-        if (data.access_token) {
-          token = data.access_token;
-          localStorage.setItem('at', token);
-          return api(endpoint, method, body, false);
-        }
-      }
       return res.json();
     }
   </script>
