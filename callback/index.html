@@ -23,16 +23,16 @@
   <div id="log"></div>
 
   <script>
-    // YENİ AKIŞ: IMPLICIT GRANT FLOW (Token Exchange yok!)
+    // YENİ AKIŞ: IMPLICIT GRANT FLOW
     const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
     
-    // URL fragment'ından token'ı ayıkla
+    // Token'ı URL'nin hash (fragment) kısmından doğrudan alıyoruz.
     const params = new URLSearchParams(window.location.hash.substring(1));
     const token = params.get('access_token');
 
     if (token) {
         localStorage.setItem('at', token);
-        // Token'ı aldıktan sonra URL'i temizle
+        // Token'ı aldıktan sonra URL'yi temizle, böylece tekrar yetkilendirme akışı başlamaz.
         window.history.pushState('', document.title, window.location.pathname);
     }
 
@@ -43,7 +43,7 @@
         document.getElementById('log').innerText = '✔ Giriş başarılı, seçim yapın.';
     }
     
-    // RUH HALİ KARTLARI (Aynı)
+    // RUH HALİ KARTLARI
     const moods = [
       { name: 'Enerjik', desc: 'Hareketli, coşkulu', energy: [0.7, 1], valence: [0.5, 1] },
       { name: 'Sakin', desc: 'Rahat, huzurlu', energy: [0, 0.4], valence: [0.4, 0.8] },
@@ -57,6 +57,7 @@
       const card = document.createElement('div');
       card.className = 'mood-card';
       card.innerHTML = `<h3>${m.name}</h3><span>${m.desc}</span>`; 
+      // Token varsa liste oluştur, yoksa uyarı ver.
       card.onclick = () => currentToken ? createPlaylist(m) : alert('Lütfen önce Spotify ile giriş yapın.');
       grid.appendChild(card);
     });
@@ -66,7 +67,8 @@
       const user = await api('v1/me');
       
       if (!user.id) {
-          document.getElementById('log').innerText = '❌ Kullanıcı bilgisi alınamadı veya token süresi doldu.';
+          // Eğer API'den 401 (Unauthorized) dönerse buraya düşer
+          document.getElementById('log').innerText = '❌ Kullanıcı bilgisi alınamadı, token süresi dolmuş olabilir.';
           return;
       }
       
