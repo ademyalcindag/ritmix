@@ -37,41 +37,50 @@
         <div id="player-container"></div> </div>
 
     <script>
-        // --- YENİ VE BASİT AKIŞ: TEK DOSYA (IMPLICIT GRANT) ---
+        // --- MANTIK HATASI DÜZELTİLMİŞ YENİ AKIŞ ---
 
-        // ✅ BU ID'NİN SPOTIFY AYARLARINLA AYNI OLDUĞUNU KONTROL ETTİK
-        const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6'; 
-        // ✅ BU URI'NİN SPOTIFY AYARLARINLA AYNI OLDUĞUNU KONTROL ETTİK
+        const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
         const REDIRECT_URI = 'https://ritmix.vercel.app/'; 
+        const API_URL = 'https://api.spotify.com/';
 
         // 1. Token'ı al veya Giriş Linkini Hazırla
         (function handleAuth() {
+            console.log('Kimlik doğrulaması kontrol ediliyor...');
             const params = new URLSearchParams(window.location.hash.substring(1));
-            const token = params.get('access_token');
+            const tokenFromUrl = params.get('access_token');
 
-            if (token) {
-                // Başarılı giriş: Token'ı kaydet ve uygulama ekranını göster
-                localStorage.setItem('at', token);
+            if (tokenFromUrl) {
+                // DURUM 1: Spotify'dan yeni giriş yapıldı (URL'de token var)
+                console.log('Token URL hash içinde bulundu:', tokenFromUrl);
+                localStorage.setItem('at', tokenFromUrl);
+                console.log('Token localStorage\'a kaydedildi.');
                 window.history.pushState('', document.title, window.location.pathname); // URL'i temizle
                 showApp();
-            } else {
-                // Token yoksa: Giriş linkini hazırla
-                // ✅ DOĞRU YÖNLENDİRME LİNKİ
-                const authUrl = `https://api.spotify.com/$0`
-                document.getElementById('login-btn').href = authUrl;
+                return;
             }
+
+            // ✅ DÜZELTME: Bu kod bloğu eksikti.
+            const tokenFromStorage = localStorage.getItem('at');
+            if (tokenFromStorage) {
+                // DURUM 2: Sayfa yenilendi (Token depolamada var)
+                console.log('Token localStorage\'da bulundu:', tokenFromStorage);
+                showApp();
+                return;
+            }
+            
+            // DURUM 3: Hiç token yok, giriş yapılmalı
+            console.log('Token bulunamadı. Giriş linki hazırlanıyor.');
+            const authUrl = `https://api.spotify.com/$0`
+            document.getElementById('login-btn').href = authUrl;
         })();
 
         // 2. Uygulama Arayüzünü Göster
         function showApp() {
-            const token = localStorage.getItem('at');
-            if (!token) return; // Token yoksa gösterme
-
+            console.log('Uygulama arayüzü gösteriliyor (showApp).');
             document.getElementById('auth-container').style.display = 'none';
             document.getElementById('app-container').style.display = 'block';
             document.getElementById('log').innerText = '✔ Giriş başarılı, seçim yapın.';
             
-            // Kartları oluştur
             const moods = [
                 { name: 'Enerjik', desc: 'Hareketli, coşkulu', energy: [0.7, 1], valence: [0.5, 1] },
                 { name: 'Sakin', desc: 'Rahat, huzurlu', energy: [0, 0.4], valence: [0.4, 0.8] },
@@ -80,6 +89,7 @@
                 { name: 'Neşeli', desc: 'Mutlu, pozitif', energy: [0.5, 1], valence: [0.7, 1] }
             ];
             const grid = document.getElementById('grid');
+            grid.innerHTML = ''; // Önceki kartları temizle (varsa)
             moods.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'mood-card';
@@ -95,9 +105,7 @@
             const user = await api('v1/me');
             
             if (!user.id) {
-                document.getElementById('log').innerText = '❌ Token süresi doldu, lütfen tekrar giriş yapın.';
-                localStorage.removeItem('at'); // Bozuk token'ı sil
-                setTimeout(() => window.location = REDIRECT_URI, 2000); // Ana sayfaya yönlendir
+                // API 401 dönerse (api() fonksiyonu içindeki hata yakalama sayesinde) burası tetiklenir
                 return;
             }
             
@@ -141,21 +149,27 @@
 
         // 4. API Fonksiyonu
         async function api(endpoint, method = 'GET', body = null) {
-            // ✅ DOĞRU API ADRESİ
-            const API_URL = 'https://api.spotify.com/';
+            const token = localStorage.getItem('at');
+            console.log(`API isteği: ${endpoint}, Token: ${token ? 'Var' : 'Yok'}`);
+            
+            if (!token) {
+                console.log('Token YOK. Giriş sayfasına yönlendiriliyor.');
+                window.location = REDIRECT_URI;
+                return {};
+            }
             
             const res = await fetch(`${API_URL}${endpoint}`, {
                 method,
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('at')}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: body ? JSON.stringify(body) : undefined
             });
             
             if (!res.ok) {
-                if (res.status === 401) { // 401 Unauthorized hatasını yakala
-                    console.error('Token geçersiz veya süresi dolmuş.');
+                if (res.status === 401) { 
+                    console.error('API Hatası 401: Token geçersiz veya süresi dolmuş. Giriş sayfasına yönlendiriliyor.');
                     localStorage.removeItem('at'); // Bozuk token'ı sil
                     window.location = REDIRECT_URI; // Ana sayfaya (giriş ekranına) yönlendir
                 }
