@@ -27,7 +27,7 @@
   <div id="log"></div>
 
   <script>
-    // 1) PKCE FLOW – SUNUCUSUZ, REFRESHSİZ, SONSUZ
+    // 1) KALICI ÇÖZÜM – PKCE FLOW (SUNUCUSUZ, REFRESHSİZ, SONSUZ)
     const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
     const REDIRECT_URI = 'https://ritmix.vercel.app/callback';
 
@@ -35,7 +35,7 @@
     let token = localStorage.getItem('at');
     if (!token) { startAuth(); }
 
-    // 2) AUTH FLOW BAŞLAT (PKCE)
+    // 2) AUTH FLOW BAŞLAT (PKCE – SUNUCUSUZ)
     function startAuth() {
       const codeVerifier = generateCodeVerifier();
       const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -83,10 +83,9 @@
       return btoa(String.fromCharCode.apply(null, array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     }
 
-    function generateCodeChallenge(verifier) {
-      return crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)).then(buf => {
-        return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-      });
+    async function generateCodeChallenge(verifier) {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+      return btoa(String.fromCharCode.apply(null, new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     }
 
     // 4) RUH HALİ KARTLARI
