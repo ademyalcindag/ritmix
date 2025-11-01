@@ -23,72 +23,27 @@
   <div id="log"></div>
 
   <script>
-    // ✅ KESİN CLIENT ID TANIMI
+    // YENİ AKIŞ: IMPLICIT GRANT FLOW (Token Exchange yok!)
     const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
-    const REDIRECT_URI = 'https://ritmix.vercel.app/callback';
+    
+    // URL fragment'ından token'ı ayıkla
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const token = params.get('access_token');
 
-    // Token var mı? Yoksa auth flow başlat
-    let token = localStorage.getItem('at');
-    if (!token) { startAuth(); }
-
-    // PKCE FLOW BAŞLAT
-    async function startAuth() {
-      const codeVerifier = generateCodeVerifier();
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
-      localStorage.setItem('cv', codeVerifier);
-
-      // ✅ DÜZELTME 1/3: Auth URL - Spotify'ın Gerçek Auth URL'si
-      const authUrl = `https://accounts.spotify.com/api/token5{CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
-      window.location = authUrl;
+    if (token) {
+        localStorage.setItem('at', token);
+        // Token'ı aldıktan sonra URL'i temizle
+        window.history.pushState('', document.title, window.location.pathname);
     }
 
-    // CALLBACK’DEN TOKEN AL
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    if (code) {
-      exchangeCode(code).then(() => {
-        localStorage.removeItem('cv');
-        setTimeout(() => { window.location = REDIRECT_URI; }, 500);
-      });
+    let currentToken = localStorage.getItem('at');
+    if (!currentToken) {
+        document.getElementById('log').innerText = '❌ Yetkilendirme başarısız veya token süresi dolmuş. Lütfen ana sayfadan tekrar giriş yapın.';
+    } else {
+        document.getElementById('log').innerText = '✔ Giriş başarılı, seçim yapın.';
     }
-
-    async function exchangeCode(code) {
-      const verifier = localStorage.getItem('cv');
-      if (!verifier) return;
-      
-      // ✅ DÜZELTME 2/3: Token Exchange URL - Spotify'ın Gerçek Token URL'si
-      const res = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: REDIRECT_URI,
-          client_id: CLIENT_ID, // CLIENT_ID doğru gönderiliyor
-          code_verifier: verifier
-        })
-      });
-      const data = await res.json();
-      if (data.access_token) {
-        localStorage.setItem('at', data.access_token);
-        localStorage.setItem('rt', data.refresh_token || '');
-      } else {
-        console.error('Token alınamadı:', data);
-      }
-    }
-
-    function generateCodeVerifier() {
-      const array = new Uint8Array(32);
-      crypto.getRandomValues(array);
-      return btoa(String.fromCharCode.apply(null, array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    }
-
-    async function generateCodeChallenge(verifier) {
-      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-      return btoa(String.fromCharCode.apply(null, new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    }
-
-    // RUH HALİ KARTLARI
+    
+    // RUH HALİ KARTLARI (Aynı)
     const moods = [
       { name: 'Enerjik', desc: 'Hareketli, coşkulu', energy: [0.7, 1], valence: [0.5, 1] },
       { name: 'Sakin', desc: 'Rahat, huzurlu', energy: [0, 0.4], valence: [0.4, 0.8] },
@@ -102,23 +57,22 @@
       const card = document.createElement('div');
       card.className = 'mood-card';
       card.innerHTML = `<h3>${m.name}</h3><span>${m.desc}</span>`; 
-      card.onclick = () => createPlaylist(m);
+      card.onclick = () => currentToken ? createPlaylist(m) : alert('Lütfen önce Spotify ile giriş yapın.');
       grid.appendChild(card);
     });
-    document.getElementById('log').innerText = '✔ Giriş başarılı, seçim yapın.';
 
     async function createPlaylist(mood) {
       document.getElementById('log').innerText = 'Liste oluşturuluyor...';
       const user = await api('v1/me');
       
       if (!user.id) {
-          document.getElementById('log').innerText = '❌ Kullanıcı bilgisi alınamadı, yetkilendirme sorun olabilir.';
+          document.getElementById('log').innerText = '❌ Kullanıcı bilgisi alınamadı veya token süresi doldu.';
           return;
       }
       
       const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
         name: `Ritmix • ${mood.name}`,
-        description: 'AI ile ruh haline göre oluşturuldu',
+        description: 'Implicit Flow ile oluşturuldu',
         public: true
       });
       
@@ -141,4 +95,37 @@
       // Liste başarılı, Oynatıcıyı sayfaya gömüyoruz
       document.getElementById('grid').innerHTML = `
           <iframe 
-              style="border-radius:12px
+              style="border-radius:12px" 
+              src="https://accounts.spotify.com/api/token3${playlistId}" 
+              width="100%" 
+              height="352" 
+              frameborder="0" 
+              allowfullscreen="" 
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+              loading="lazy">
+          </iframe>
+      `;
+      document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br>Sayfadan ayrılmadan dinleyebilirsiniz.`;
+    }
+
+    async function api(endpoint, method = 'GET', body = null) {
+      // ✅ API URL'si
+      const API_URL = 'https://api.spotify.com/'; 
+      
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('at')}`,
+          'Content-Type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`API hatası [${res.status}]:`, errorText);
+        return {}; 
+      }
+      return res.json();
+    }
+  </script></body></html>
