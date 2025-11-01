@@ -142,11 +142,13 @@
       document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
     }
 
-    async function api(endpoint, method = 'GET', body = null) {
-      // ✅ KESİN SPOTIFY API BASE URL'Sİ (404 hatasını çözmesi gerekiyor)
-      const BASE_URL = 'https://api.spotify.com/'; 
+  async function api(endpoint, method = 'GET', body = null) {
+      // ✅ KESİN VE DOĞRU SPOTIFY API URL'SİNİ DİREKT KULLANIYORUZ
+      // Artık 'BASE_URL' değişkeni kullanmak yerine, direkt Spotify adresini veriyoruz.
+      const API_URL = 'https://api.spotify.com/'; 
       
-      const res = await fetch(`${BASE_URL}${endpoint}`, {
+      // Fetch isteğini buna göre düzenliyoruz.
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method,
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('at')}`,
