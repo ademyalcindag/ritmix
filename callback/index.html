@@ -37,7 +37,7 @@
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       localStorage.setItem('cv', codeVerifier);
 
-      // Auth URL'si düzeltildi (HTTPS kullanıldı)
+      // Auth URL'si düzeltildi 
       const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
       window.location = authUrl;
     }
@@ -55,7 +55,7 @@
     async function exchangeCode(code) {
       const verifier = localStorage.getItem('cv');
       if (!verifier) return;
-      // Token Exchange URL'si düzeltildi (HTTPS kullanıldı)
+      // Token Exchange URL'si düzeltildi 
       const res = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -100,7 +100,7 @@
     moods.forEach(m => {
       const card = document.createElement('div');
       card.className = 'mood-card';
-      // ✅ KARTLARIN GİTMESİNİ ENGELLEYEN DÜZELTME
+      // Kartların gitmesini engelleyen düzeltme (Backtick kullanımı)
       card.innerHTML = `<h3>${m.name}</h3><span>${m.desc}</span>`; 
       card.onclick = () => createPlaylist(m);
       grid.appendChild(card);
@@ -138,13 +138,12 @@
       }
       
       const uris = tracks.tracks.map(t => t.uri);
-      // API isteği gönderilir
       await api(`v1/playlists/${playlist.id}/tracks`, 'POST', { uris });
       document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
     }
 
     async function api(endpoint, method = 'GET', body = null) {
-      // ✅ SPOTIFY API URL'Sİ DÜZELTİLDİ
+      // ✅ KESİN SPOTIFY API BASE URL'Sİ (404 hatasını çözmesi gerekiyor)
       const BASE_URL = 'https://api.spotify.com/'; 
       
       const res = await fetch(`${BASE_URL}${endpoint}`, {
