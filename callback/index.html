@@ -37,7 +37,7 @@
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       localStorage.setItem('cv', codeVerifier);
 
-      // Auth URL'si düzeltildi 
+      // ✅ DÜZELTME 1/3: Auth URL
       const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=playlist-modify-public%20playlist-modify-private%20user-top-read&code_challenge=${codeChallenge}&code_challenge_method=S256`;
       window.location = authUrl;
     }
@@ -55,7 +55,7 @@
     async function exchangeCode(code) {
       const verifier = localStorage.getItem('cv');
       if (!verifier) return;
-      // Token Exchange URL'si düzeltildi 
+      // ✅ DÜZELTME 2/3: Token Exchange URL
       const res = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -100,7 +100,6 @@
     moods.forEach(m => {
       const card = document.createElement('div');
       card.className = 'mood-card';
-      // Kartların gitmesini engelleyen düzeltme (Backtick kullanımı)
       card.innerHTML = `<h3>${m.name}</h3><span>${m.desc}</span>`; 
       card.onclick = () => createPlaylist(m);
       grid.appendChild(card);
@@ -111,7 +110,6 @@
       document.getElementById('log').innerText = 'Liste oluşturuluyor...';
       const user = await api('v1/me');
       
-      // Hata kontrolü
       if (!user.id) {
           document.getElementById('log').innerText = '❌ Kullanıcı bilgisi alınamadı, yetkilendirme sorun olabilir.';
           return;
@@ -123,7 +121,6 @@
         public: true
       });
       
-      // Hata kontrolü
       if (!playlist.id) {
           document.getElementById('log').innerText = '❌ Liste oluşturulamadı, API hatası devam ediyor.';
           return;
@@ -131,7 +128,6 @@
       
       const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
       
-      // Hata kontrolü
        if (!tracks.tracks) {
           document.getElementById('log').innerText = '❌ Şarkı önerisi alınamadı.';
           return;
@@ -142,12 +138,10 @@
       document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
     }
 
-  async function api(endpoint, method = 'GET', body = null) {
-      // ✅ KESİN VE DOĞRU SPOTIFY API URL'SİNİ DİREKT KULLANIYORUZ
-      // Artık 'BASE_URL' değişkeni kullanmak yerine, direkt Spotify adresini veriyoruz.
+    async function api(endpoint, method = 'GET', body = null) {
+      // ✅ DÜZELTME 3/3: Ana API URL'si
       const API_URL = 'https://api.spotify.com/'; 
       
-      // Fetch isteğini buna göre düzenliyoruz.
       const res = await fetch(`${API_URL}${endpoint}`, {
         method,
         headers: {
