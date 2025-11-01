@@ -100,7 +100,8 @@
     moods.forEach(m => {
       const card = document.createElement('div');
       card.className = 'mood-card';
-      card.innerHTML = `<h3>${m.name}</h3><span>${m.desc}</span>`;
+      // ✅ KARTLARIN GİTMESİNİ ENGELLEYEN DÜZELTME
+      card.innerHTML = `<h3>${m.name}</h3><span>${m.desc}</span>`; 
       card.onclick = () => createPlaylist(m);
       grid.appendChild(card);
     });
@@ -116,4 +117,50 @@
           return;
       }
       
-      const playlist = await api(`v1/users/${user.id}/playlists
+      const playlist = await api(`v1/users/${user.id}/playlists`, 'POST', {
+        name: `Ritmix • ${mood.name}`,
+        description: 'AI ile ruh haline göre oluşturuldu',
+        public: true
+      });
+      
+      // Hata kontrolü
+      if (!playlist.id) {
+          document.getElementById('log').innerText = '❌ Liste oluşturulamadı, API hatası devam ediyor.';
+          return;
+      }
+      
+      const tracks = await api(`v1/recommendations?limit=20&seed_genres=pop&min_energy=${mood.energy[0]}&max_energy=${mood.energy[1]}&min_valence=${mood.valence[0]}&max_valence=${mood.valence[1]}`);
+      
+      // Hata kontrolü
+       if (!tracks.tracks) {
+          document.getElementById('log').innerText = '❌ Şarkı önerisi alınamadı.';
+          return;
+      }
+      
+      const uris = tracks.tracks.map(t => t.uri);
+      // API isteği gönderilir
+      await api(`v1/playlists/${playlist.id}/tracks`, 'POST', { uris });
+      document.getElementById('log').innerHTML = `<strong>Liste hazır!</strong><br><a href="${playlist.external_urls.spotify}" target="_blank">Spotify'da aç</a>`;
+    }
+
+    async function api(endpoint, method = 'GET', body = null) {
+      // ✅ SPOTIFY API URL'Sİ DÜZELTİLDİ
+      const BASE_URL = 'https://api.spotify.com/'; 
+      
+      const res = await fetch(`${BASE_URL}${endpoint}`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('at')}`,
+          'Content-Type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`API hatası [${res.status}]:`, errorText);
+        return {}; 
+      }
+      return res.json();
+    }
+  </script></body></html>
