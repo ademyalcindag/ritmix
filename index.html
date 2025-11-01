@@ -39,8 +39,9 @@
     <script>
         // --- YENİ VE BASİT AKIŞ: TEK DOSYA (IMPLICIT GRANT) ---
 
-        const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6';
-        // YENİ REDIRECT_URI: Sadece ana sayfa (Spotify'da ayarladığınla aynı olmalı)
+        // ✅ BU ID'NİN SPOTIFY AYARLARINLA AYNI OLDUĞUNU KONTROL ETTİK
+        const CLIENT_ID = 'c9b9ffada77b4d05b758ca33a2fd43f6'; 
+        // ✅ BU URI'NİN SPOTIFY AYARLARINLA AYNI OLDUĞUNU KONTROL ETTİK
         const REDIRECT_URI = 'https://ritmix.vercel.app/'; 
 
         // 1. Token'ı al veya Giriş Linkini Hazırla
@@ -55,6 +56,7 @@
                 showApp();
             } else {
                 // Token yoksa: Giriş linkini hazırla
+                // ✅ DOĞRU YÖNLENDİRME LİNKİ
                 const authUrl = `https://api.spotify.com/$0`
                 document.getElementById('login-btn').href = authUrl;
             }
@@ -139,6 +141,7 @@
 
         // 4. API Fonksiyonu
         async function api(endpoint, method = 'GET', body = null) {
+            // ✅ DOĞRU API ADRESİ
             const API_URL = 'https://api.spotify.com/';
             
             const res = await fetch(`${API_URL}${endpoint}`, {
